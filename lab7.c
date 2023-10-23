@@ -16,6 +16,7 @@
 
 void play_note(uint16_t);
 void variable_delay_us(int16_t);
+void timer1_init(void);
 
 // Frequencies for natural notes from middle C (C4)
 // up one octave to C5.
@@ -41,6 +42,7 @@ int main(void) {
 	PCMSK1 |= (1 << PCINT9) | (1 << PCINT13);
 
 	lcd_init();
+	timer1_init();
 
     // Write a spash screen to the LCD
 	lcd_moveto(0, 0);
@@ -187,6 +189,7 @@ void timer1_init()
 
     // Enable “Output Compare A Match Interrupt”
     TIMSK1 |= (1 << OCIE1A);
+
 }
 
 /*
@@ -207,7 +210,10 @@ ISR(TIMER1_COMPA_vect)
     // In Task 7, add code to change the output bit to the buzzer, and to turn
     // off the timer after enough periods of the signal
 	PORTB ^= (1 << PB4);
-	if (++timer_completed_cycles == timer_max_cycles) {
+	
+	timer_completed_cycles++;
+
+	if (timer_completed_cycles == timer_max_cycles) {
 		TCCR1B &= ~(1 << CS10);
 	}
 }
