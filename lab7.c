@@ -149,11 +149,13 @@ int main(void) {
 			// Do we play a note?
 			if ((count % 8) == 0) {
 				// Determine which note (0-7) to play
+				char note = (count % 64) / 8;
+				if (note < 0) 
+					note *= -1;
 
 				// Find the frequency of the note
-
 				// Call play_note and pass it the frequency
-
+				play_note(frequency[note]);
 			}
         }
     }
@@ -191,6 +193,7 @@ ISR(PCINT1_vect)
 {
     // In Task 6, add code to read the encoder inputs and determine the new
     // count value
+	
 
 }
 
