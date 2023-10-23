@@ -30,25 +30,35 @@ int main(void) {
 
     // Initialize DDR and PORT registers and LCD
 	PORTC |= (1 << PC1) | (1 << PC5);
+	DDRB |= (1 << PB4);
 
 	lcd_init();
 
     // Write a spash screen to the LCD
-
+	lcd_moveto(0, 0);
+	lcd_stringout("EE 109 Lab 7");
+	lcd_moveto(1,0);
+	lcd_stringout("Nate Boxer");
+	_delay_ms(1000);
+	lcd_moveto(1,0);
+	lcd_stringout("          ");	
 
     // Read the A and B inputs to determine the intial state.
     // In the state number, B is the MSB and A is the LSB.
     // Warning: Do NOT read A and B separately.  You should read BOTH inputs
     // at the same time, then determine the A and B values from that value.    
+	uint8_t x = PINC;
+	a = x & (1 << PC1);
+	b = x & (1 << PC5);
 
     if (!b && !a)
-	old_state = 0;
+		old_state = 0;
     else if (!b && a)
-	old_state = 1;
+		old_state = 1;
     else if (b && !a)
-	old_state = 2;
+		old_state = 2;
     else
-	old_state = 3;
+		old_state = 3;
 
     new_state = old_state;
 
@@ -58,40 +68,64 @@ int main(void) {
 		a = x & (1 << PC1);
 		b = x & (1 << PC5);
 
-		// For the Checkpoint, print the values of A and B on the LCD.
+		// convert a and b to 1 or 0
 		a = (a >> PC1);
 		b = (b >> PC5);
-
-		char buf[10];
- 		snprintf(buf, 10, "A=%d B=%d", a, b);
-		//lcd_writecommand(1);
-		lcd_moveto(0,0);
-		lcd_stringout(buf);
-
 
 		// The following code is for Tasks 4 and later.
 		// For each state, examine the two input bits to see if state
 		// has changed, and if so set "new_state" to the new state,
 		// and adjust the count value.
 		if (old_state == 0) {
-
+			
 			// Handle A and B inputs for state 0
+			if (a == 1) {
+				new_state = 1;
+				--count;
+			}
+			if (b == 1) {
+				new_state = 2;
+				++count;
+			}
 
 		}
 		else if (old_state == 1) {
 
 			// Handle A and B inputs for state 1
+			if (a == 0) {
+				new_state = 0;
+				++count;
+			}
+			if (b == 1) {
+				new_state = 3;
+				--count;
+			}
 
 		}
 		else if (old_state == 2) {
 
 			// Handle A and B inputs for state 2
+			if (a == 1) {
+				new_state = 3;
+				++count;
+			}
+			if (b == 0) {
+				new_state = 0;
+				--count;
+			}
 
 		}
 		else {   // old_state = 3
 
 			// Handle A and B inputs for state 3
-
+			if (a == 0) {
+				new_state = 2;
+				--count;
+			}
+			if (b == 0) {
+				new_state = 1;
+				++count;
+			}
 		}
 
 		// If state changed, update the value of old_state,
@@ -101,18 +135,24 @@ int main(void) {
 			old_state = new_state;
 		}
 
-			if (changed) { // Did state change?
+		if (changed) { // Did state change?
 			changed = 0;        // Reset changed flag
 
 			// Output count to LCD
+			char buf[10];
+			snprintf(buf, 10, "%d", count);
+			lcd_moveto(1,0);
+			lcd_stringout("         ");
+			lcd_moveto(1,0);
+			lcd_stringout(buf);
 
 			// Do we play a note?
 			if ((count % 8) == 0) {
-			// Determine which note (0-7) to play
+				// Determine which note (0-7) to play
 
-			// Find the frequency of the note
+				// Find the frequency of the note
 
-			// Call play_note and pass it the frequency
+				// Call play_note and pass it the frequency
 
 			}
         }
@@ -131,7 +171,7 @@ void play_note(uint16_t freq)
     while (freq--) {
 	PORTB |= (1 << PB4);    // Buzzer output high
 	variable_delay_us(period / 2);  // Delay for half the period
-	PORTB &= ~(1 << PB4);   // Buzzer output log
+	PORTB &= ~(1 << PB4);   // Buzzer output low
 	variable_delay_us(period / 2);  // Delay for half the period
     }
 }
