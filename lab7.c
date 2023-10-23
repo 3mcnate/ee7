@@ -22,15 +22,20 @@ void variable_delay_us(int16_t);
 uint16_t frequency[8] =
     { 262, 294, 330, 349, 392, 440, 494, 523 };
 
+volatile uint8_t new_state, old_state;
+volatile uint8_t changed = 0;  // Flag for state change
+volatile int16_t count = 0;		// Count to display
+volatile uint8_t a, b;
+
 int main(void) {
-    uint8_t new_state, old_state;
-    uint8_t changed = 0;  // Flag for state change
-    int16_t count = 0;		// Count to display
-    uint8_t a, b;
 
     // Initialize DDR and PORT registers and LCD
 	PORTC |= (1 << PC1) | (1 << PC5);
 	DDRB |= (1 << PB4);
+
+	// enable interrupts for PC1 and PC5
+	PCICR |= (1 << PCIE1);
+	PCMSK1 |= (1 << PCINT9) | (1 << PCINT13);
 
 	lcd_init();
 
@@ -62,79 +67,11 @@ int main(void) {
 
     new_state = old_state;
 
+	// enable global interrupts
+	sei();
+
     while (1) {                 // Loop forever
-		// Read the input bits and determine A and B.
-		uint8_t x = PINC;
-		a = x & (1 << PC1);
-		b = x & (1 << PC5);
-
-		// convert a and b to 1 or 0
-		a = (a >> PC1);
-		b = (b >> PC5);
-
-		// The following code is for Tasks 4 and later.
-		// For each state, examine the two input bits to see if state
-		// has changed, and if so set "new_state" to the new state,
-		// and adjust the count value.
-		if (old_state == 0) {
-			
-			// Handle A and B inputs for state 0
-			if (a == 1) {
-				new_state = 1;
-				--count;
-			}
-			if (b == 1) {
-				new_state = 2;
-				++count;
-			}
-
-		}
-		else if (old_state == 1) {
-
-			// Handle A and B inputs for state 1
-			if (a == 0) {
-				new_state = 0;
-				++count;
-			}
-			if (b == 1) {
-				new_state = 3;
-				--count;
-			}
-
-		}
-		else if (old_state == 2) {
-
-			// Handle A and B inputs for state 2
-			if (a == 1) {
-				new_state = 3;
-				++count;
-			}
-			if (b == 0) {
-				new_state = 0;
-				--count;
-			}
-
-		}
-		else {   // old_state = 3
-
-			// Handle A and B inputs for state 3
-			if (a == 0) {
-				new_state = 2;
-				--count;
-			}
-			if (b == 0) {
-				new_state = 1;
-				++count;
-			}
-		}
-
-		// If state changed, update the value of old_state,
-		// and set a flag that the state has changed.
-		if (new_state != old_state) {
-			changed = 1;
-			old_state = new_state;
-		}
-
+		
 		if (changed) { // Did state change?
 			changed = 0;        // Reset changed flag
 
@@ -193,8 +130,77 @@ ISR(PCINT1_vect)
 {
     // In Task 6, add code to read the encoder inputs and determine the new
     // count value
-	
 
+	// Read the input bits and determine A and B.
+	uint8_t x = PINC;
+	a = x & (1 << PC1);
+	b = x & (1 << PC5);
+
+	// convert a and b to 1 or 0
+	a = (a >> PC1);
+	b = (b >> PC5);
+
+	// The following code is for Tasks 4 and later.
+	// For each state, examine the two input bits to see if state
+	// has changed, and if so set "new_state" to the new state,
+	// and adjust the count value.
+	if (old_state == 0) {
+		// Handle A and B inputs for state 0
+		if (a == 1) {
+			new_state = 1;
+			--count;
+		}
+		if (b == 1) {
+			new_state = 2;
+			++count;
+		}
+
+	}
+	else if (old_state == 1) {
+
+		// Handle A and B inputs for state 1
+		if (a == 0) {
+			new_state = 0;
+			++count;
+		}
+		if (b == 1) {
+			new_state = 3;
+			--count;
+		}
+
+	}
+	else if (old_state == 2) {
+
+		// Handle A and B inputs for state 2
+		if (a == 1) {
+			new_state = 3;
+			++count;
+		}
+		if (b == 0) {
+			new_state = 0;
+			--count;
+		}
+
+	}
+	else {   // old_state = 3
+
+		// Handle A and B inputs for state 3
+		if (a == 0) {
+			new_state = 2;
+			--count;
+		}
+		if (b == 0) {
+			new_state = 1;
+			++count;
+		}
+	}		
+
+	// If state changed, update the value of old_state,
+	// and set a flag that the state has changed.
+	if (new_state != old_state) {
+		changed = 1;
+		old_state = new_state;
+	}
 }
 
 
