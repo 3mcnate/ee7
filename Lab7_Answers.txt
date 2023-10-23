@@ -13,19 +13,22 @@ and OCR1A values should be the ones that give the most accurate timing.
 
 a. 200 Hz tone for 5 seconds
 
-
-
+	prescalar: 1
+	OCR1A: 40,000
+	num interrupts: 2000
 
 b. 32 Hz tone for 2 seconds
 
-
-
-
+	prescalar: 8
+	OCR1A: 31,250
+	num interrupts: 128
 
 2. (1 point) Briefly explain why updating the LCD display in your ISR could
 lead to undesirable behavior for this lab.
 
-
+	When we are in an ISR no other interrupts can occur. Since updating the 
+	LCD takes a relatively long time, we may miss interrupts from the timer
+	or encoder if we update the LCD in the ISR.
 
 
 
