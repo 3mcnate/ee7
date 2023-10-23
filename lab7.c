@@ -27,6 +27,9 @@ volatile uint8_t changed = 0;  // Flag for state change
 volatile int16_t count = 0;		// Count to display
 volatile uint8_t a, b;
 
+volatile uint16_t timer_max_cycles;
+volatile uint16_t timer_completed_cycles;
+
 int main(void) {
 
     // Initialize DDR and PORT registers and LCD
@@ -86,44 +89,15 @@ int main(void) {
 			// Do we play a note?
 			if ((count % 8) == 0) {
 				// Determine which note (0-7) to play
-				char note = (count % 64) / 8;
+				int8_t note = (count % 64) / 8;
 				if (note < 0) 
 					note *= -1;
 
-				// Find the frequency of the note
 				// Call play_note and pass it the frequency
 				play_note(frequency[note]);
 			}
         }
     }
-}
-
-/*
-  Play a tone at the frequency specified for one second
-*/
-void play_note(uint16_t freq)
-{
-    uint32_t period;
-
-    period = 1000000 / freq;    // Period of note in microseconds
-
-    while (freq--) {
-	PORTB |= (1 << PB4);    // Buzzer output high
-	variable_delay_us(period / 2);  // Delay for half the period
-	PORTB &= ~(1 << PB4);   // Buzzer output low
-	variable_delay_us(period / 2);  // Delay for half the period
-    }
-}
-
-/*
-    variable_delay_us - Delay a variable number of microseconds
-*/
-void variable_delay_us(int16_t delay)
-{
-    int i = (delay + 5) / 10;
-
-    while (i--)
-        _delay_us(10);
 }
 
 ISR(PCINT1_vect)
@@ -203,15 +177,48 @@ ISR(PCINT1_vect)
 	}
 }
 
-
 void timer1_init()
 {
     // In Task 7, add code to inititialize TIMER1, but don't start it counting
 
+	// Set the mode for “Clear Timer on Compare”
+    TCCR1B &= ~(1 << WGM13);
+    TCCR1B |= (1 << WGM12); 
+
+    // Enable “Output Compare A Match Interrupt”
+    TIMSK1 |= (1 << OCIE1A);
 }
+
+/*
+  Play a tone at the frequency specified for one second
+*/
+void play_note(uint16_t freq)
+{
+	timer_max_cycles = freq * 2;
+	OCR1A = 16000000 / timer_max_cycles;
+	
+	timer_completed_cycles = 0;
+	// start timer
+	TCCR1B |= (1 << CS10);
+}
+
 ISR(TIMER1_COMPA_vect)
 {
     // In Task 7, add code to change the output bit to the buzzer, and to turn
     // off the timer after enough periods of the signal
+	PORTB ^= (1 << PB4);
+	if (++timer_completed_cycles == timer_max_cycles) {
+		TCCR1B &= ~(1 << CS10);
+	}
+}
 
+/*
+    variable_delay_us - Delay a variable number of microseconds
+*/
+void variable_delay_us(int16_t delay)
+{
+    int i = (delay + 5) / 10;
+
+    while (i--)
+        _delay_us(10);
 }
